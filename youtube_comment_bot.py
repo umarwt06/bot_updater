@@ -476,8 +476,8 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 850, 800)
         # --- NEW: Set the window icon ---
         # Ensure you have a 'logo.png' file in the same directory as the script.
-        if os.path.exists("logo.png"):
-            self.setWindowIcon(QIcon("logo.png"))
+        if os.path.exists("logo.ico"):
+            self.setWindowIcon(QIcon("logo.ico"))
         
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
