@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QTextEdit, QPushButton, QLabel, QFileDialog, QSpinBox, QGroupBox,
     QProgressBar, QLineEdit, QCheckBox, QMessageBox, QRadioButton
 )
-# --- Import QIcon ---
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 from selenium.webdriver.common.by import By
@@ -22,7 +21,6 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver import ActionChains, Keys
 import undetected_chromedriver as uc
 
-# --- NEW: Import ctypes for Windows Taskbar Icon ---
 if sys.platform == 'win32':
     import ctypes
 
@@ -59,7 +57,6 @@ class Worker(QObject):
         try:
             self.progress_signal.emit("Validating Gemini API Key...")
             genai.configure(api_key=self.config['api_key'])
-            # A simple, low-cost call to check authentication
             models = [m for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
             if not models:
                 raise Exception("No valid models found for the API key.")
@@ -130,7 +127,6 @@ class Worker(QObject):
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
         
-        # --- FIX: Force the driver version to match the user's browser version ---
         self.progress_signal.emit("Forcing ChromeDriver version to 137 to match browser...")
         self.driver = uc.Chrome(options=options, use_suppress_welcome=True, version_main=137)
         self.progress_signal.emit("Chrome driver started.")
@@ -204,7 +200,6 @@ class Worker(QObject):
     def _get_video_details(self):
         """Fetches title, description, and transcript for language detection."""
         details = {'title': '', 'description': '', 'transcript': ''}
-        # Use a more resilient way to fetch details, ignoring individual failures.
         try:
             details['title'] = self.driver.title.replace("- YouTube", "").strip()
         except Exception: pass
@@ -252,7 +247,6 @@ class Worker(QObject):
         try:
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(prompt)
-            # Clean the response to make sure it's valid JSON
             clean_response = response.text.strip().replace('`', '')
             if clean_response.startswith('json'):
                 clean_response = clean_response[4:]
@@ -472,8 +466,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Next Level YouTube Commenter")
         self.setGeometry(100, 100, 850, 800)
-        # --- NEW: Set the window icon ---
-        # Ensure you have a 'logo.png' file in the same directory as the script.
+        
         icon_path = None
         if os.path.exists("logo.ico"):
             icon_path = "logo.ico"
