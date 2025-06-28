@@ -472,7 +472,7 @@ class Worker(QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Next Level YouTube Commenter")
+        self.setWindowTitle("YouTube Comment Bot")
         self.setGeometry(100, 100, 850, 800)
         # --- NEW: Set the window icon ---
         # Ensure you have a 'logo.png' file in the same directory as the script.
