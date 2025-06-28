@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QTextEdit, QPushButton, QLabel, QFileDialog, QSpinBox, QGroupBox,
     QProgressBar, QLineEdit, QCheckBox, QMessageBox, QRadioButton
 )
-# --- Import QIcon ---
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 from selenium.webdriver.common.by import By
@@ -22,11 +21,8 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver import ActionChains, Keys
 import undetected_chromedriver as uc
 
-# --- NEW: Import ctypes for Windows Taskbar Icon ---
 if sys.platform == 'win32':
     import ctypes
-    myappid = 'mycompany.myproduct.subproduct.version' # arbitrary string
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 # ==================================================================================================
 # --- Worker Thread for Browser Automation ---
@@ -61,14 +57,17 @@ class Worker(QObject):
         try:
             self.progress_signal.emit("Validating Gemini API Key...")
             genai.configure(api_key=self.config['api_key'])
-            # A simple, low-cost call to check authentication
             models = [m for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
             if not models:
                 raise Exception("No valid models found for the API key.")
             self.progress_signal.emit("Gemini AI configured successfully.")
             return True
         except Exception as e:
-            self.progress_signal.emit(f"FATAL: The provided Gemini API Key is invalid. Please check your key and restart the bot. Error: {e}")
+            error_message = str(e)
+            if "API_KEY_INVALID" in error_message:
+                self.progress_signal.emit(f"FATAL: The provided Gemini API Key is invalid. Please check your key and restart the bot.")
+            else:
+                self.progress_signal.emit(f"FATAL: Could not configure Gemini AI. Error: {e}")
             return False
 
     def run(self):
@@ -132,7 +131,6 @@ class Worker(QObject):
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
         
-        # --- FIX: Force the driver version to match the user's browser version ---
         self.progress_signal.emit("Forcing ChromeDriver version to 137 to match browser...")
         self.driver = uc.Chrome(options=options, use_suppress_welcome=True, version_main=137)
         self.progress_signal.emit("Chrome driver started.")
@@ -206,7 +204,6 @@ class Worker(QObject):
     def _get_video_details(self):
         """Fetches title, description, and transcript for language detection."""
         details = {'title': '', 'description': '', 'transcript': ''}
-        # Use a more resilient way to fetch details, ignoring individual failures.
         try:
             details['title'] = self.driver.title.replace("- YouTube", "").strip()
         except Exception: pass
@@ -254,7 +251,6 @@ class Worker(QObject):
         try:
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(prompt)
-            # Clean the response to make sure it's valid JSON
             clean_response = response.text.strip().replace('`', '')
             if clean_response.startswith('json'):
                 clean_response = clean_response[4:]
@@ -265,6 +261,7 @@ class Worker(QObject):
             self.progress_signal.emit(f"Detected Language: {lang}, Region: {reg}")
             return lang, reg
         except Exception as e:
+            # --- FIX: Reverted to generic error reporting as requested by user ---
             self.progress_signal.emit(f"AI language detection failed: {e}. Defaulting to English.")
             return "English", "USA"
 
@@ -336,7 +333,8 @@ class Worker(QObject):
                 else:
                     self.progress_signal.emit(f"Duplicate or empty comment generated on attempt {attempt + 1}. Retrying...")
             except Exception as e:
-                raise Exception(f"Gemini API call failed. Check your API Key and network connection. Error: {e}")
+                 # --- FIX: Reverted to generic error reporting as requested by user ---
+                raise Exception(f"Gemini API call failed: {e}")
 
         raise Exception("Failed to generate a unique comment after several attempts.")
 
@@ -352,7 +350,10 @@ class Worker(QObject):
         
         try:
             if partial_link:
-                self.progress_signal.emit(f"Looking for video with link containing: '{partial_link}'")
+                # --- FIX: More robust link matching ---
+                clean_partial_link = partial_link.split('&')[0]
+                self.progress_signal.emit(f"Looking for video with link containing: '{clean_partial_link}'")
+                
                 video_links = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, "ytd-video-renderer a#video-title"))
                 )
@@ -360,7 +361,7 @@ class Worker(QObject):
                 found_video = False
                 for link_element in video_links:
                     href = link_element.get_attribute('href')
-                    if href and partial_link in href:
+                    if href and clean_partial_link in href:
                         self.progress_signal.emit(f"Found matching video: '{link_element.text}'. Clicking...")
                         link_element.click()
                         found_video = True
@@ -424,11 +425,9 @@ class Worker(QObject):
                 comment_input_area = WebDriverWait(self.driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, 'div#contenteditable-root')))
                 
                 self.progress_signal.emit("Typing comment using robust method...")
-                # 1. Use JS to set the content (handles emojis)
                 escaped_comment = json.dumps(comment_to_post)
                 self.driver.execute_script(f"arguments[0].textContent = {escaped_comment};", comment_input_area)
                 
-                # 2. Send a key press to trigger YouTube's internal state update
                 comment_input_area.send_keys(" ")
                 comment_input_area.send_keys(Keys.BACKSPACE)
 
@@ -474,10 +473,15 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Next Level YouTube Commenter")
         self.setGeometry(100, 100, 850, 800)
-        # --- NEW: Set the window icon ---
-        # Ensure you have a 'logo.png' file in the same directory as the script.
-        if os.path.exists("logo.png"):
-            self.setWindowIcon(QIcon("logo.png"))
+        
+        icon_path = None
+        if os.path.exists("logo.ico"):
+            icon_path = "logo.ico"
+        elif os.path.exists("logo.png"):
+            icon_path = "logo.png"
+
+        if icon_path:
+            self.setWindowIcon(QIcon(icon_path))
         
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -538,9 +542,8 @@ class MainWindow(QMainWindow):
         targeted_layout.addWidget(QLabel("Target Keyword/Theme:"))
         self.targeted_keyword_input = QLineEdit()
         self.targeted_keyword_input.setPlaceholderText("e.g., sound design, cinematography")
-        targeted_layout.addWidget(self.targeted_keyword_input)
         comment_layout.addWidget(self.targeted_keyword_widget)
-
+        
         self.manual_comments_widget = QWidget()
         manual_layout = QVBoxLayout(self.manual_comments_widget)
         manual_layout.setContentsMargins(20, 5, 0, 0)
@@ -758,6 +761,9 @@ if __name__ == '__main__':
         sys.exit(1)
         
     app = QApplication(sys.argv)
+    if sys.platform == 'win32':
+        myappid = 'mycompany.youtubebot.mainapp.1' 
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
