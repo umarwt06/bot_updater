@@ -543,9 +543,8 @@ class MainWindow(QMainWindow):
         targeted_layout.addWidget(QLabel("Target Keyword/Theme:"))
         self.targeted_keyword_input = QLineEdit()
         self.targeted_keyword_input.setPlaceholderText("e.g., sound design, cinematography")
-        targeted_layout.addWidget(self.targeted_keyword_input)
+        comment_layout.addWidget(self.targeted_keyword_widget)
         
-        # --- FIX: Define manual_comments_widget before trying to add it ---
         self.manual_comments_widget = QWidget()
         manual_layout = QVBoxLayout(self.manual_comments_widget)
         manual_layout.setContentsMargins(20, 5, 0, 0)
