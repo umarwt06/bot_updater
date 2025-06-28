@@ -1,0 +1,6 @@
+requests
+pandas
+google-generativeai
+youtube-transcript-api
+undetected-chromedriver
+PyQt6
