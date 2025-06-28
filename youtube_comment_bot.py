@@ -25,8 +25,6 @@ import undetected_chromedriver as uc
 # --- NEW: Import ctypes for Windows Taskbar Icon ---
 if sys.platform == 'win32':
     import ctypes
-    myappid = 'mycompany.myproduct.subproduct.version' # arbitrary string
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 # ==================================================================================================
 # --- Worker Thread for Browser Automation ---
@@ -472,12 +470,18 @@ class Worker(QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("YouTube Comment Bot")
+        self.setWindowTitle("Next Level YouTube Commenter")
         self.setGeometry(100, 100, 850, 800)
         # --- NEW: Set the window icon ---
         # Ensure you have a 'logo.png' file in the same directory as the script.
+        icon_path = None
         if os.path.exists("logo.ico"):
-            self.setWindowIcon(QIcon("logo.ico"))
+            icon_path = "logo.ico"
+        elif os.path.exists("logo.png"):
+            icon_path = "logo.png"
+
+        if icon_path:
+            self.setWindowIcon(QIcon(icon_path))
         
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -745,6 +749,16 @@ class MainWindow(QMainWindow):
 # --- Application Entry Point ---
 # ==================================================================================================
 
+def main():
+    """Main function to run the application."""
+    app = QApplication(sys.argv)
+    if sys.platform == 'win32':
+        myappid = 'mycompany.youtubebot.mainapp.1' # A different ID from the launcher
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
+
 if __name__ == '__main__':
     try:
         import google.generativeai
@@ -757,7 +771,4 @@ if __name__ == '__main__':
         print("Required packages: pyqt6 pandas undetected-chromedriver selenium google-generativeai youtube-transcript-api")
         sys.exit(1)
         
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+    main()
