@@ -261,7 +261,6 @@ class Worker(QObject):
             self.progress_signal.emit(f"Detected Language: {lang}, Region: {reg}")
             return lang, reg
         except Exception as e:
-            # --- NEW: More specific error handling for API quota ---
             error_message = str(e)
             if "429" in error_message and "quota" in error_message:
                  raise Exception("Gemini API daily quota exceeded. Please wait or use a new key.")
@@ -336,7 +335,6 @@ class Worker(QObject):
                 else:
                     self.progress_signal.emit(f"Duplicate or empty comment generated on attempt {attempt + 1}. Retrying...")
             except Exception as e:
-                # --- NEW: More specific error handling for API quota ---
                 error_message = str(e)
                 if "429" in error_message and "quota" in error_message:
                     raise Exception("Gemini API daily quota exceeded. Please wait or use a new key.")
@@ -545,7 +543,16 @@ class MainWindow(QMainWindow):
         targeted_layout.addWidget(QLabel("Target Keyword/Theme:"))
         self.targeted_keyword_input = QLineEdit()
         self.targeted_keyword_input.setPlaceholderText("e.g., sound design, cinematography")
-        targeted_layout.addWidget(self.targeted_keyword_widget)
+        targeted_layout.addWidget(self.targeted_keyword_input)
+        
+        # --- FIX: Define manual_comments_widget before trying to add it ---
+        self.manual_comments_widget = QWidget()
+        manual_layout = QVBoxLayout(self.manual_comments_widget)
+        manual_layout.setContentsMargins(20, 5, 0, 0)
+        manual_layout.addWidget(QLabel("Manual Comments (one per line):"))
+        self.comments_input = QTextEdit()
+        self.comments_input.setPlaceholderText("Great video!\nAwesome content!")
+        manual_layout.addWidget(self.comments_input)
         comment_layout.addWidget(self.manual_comments_widget)
         
         self.toggle_comment_method()
